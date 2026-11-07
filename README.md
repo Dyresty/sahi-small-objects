@@ -23,10 +23,19 @@ python -m venv .venv
 Downloads two SAHI demo images to `data/demo/`, runs both modes, and writes side-by-side visuals plus
 `outputs/compare/results.md` (detections and ms per image). Use `--source <folder>` for your own images.
 
+## Fine-tune on VisDrone
+
+```bash
+.venv/Scripts/python scripts/train.py                                        # full run (YOLO26s, 100 epochs, 640 px)
+.venv/Scripts/python scripts/train.py --epochs 1 --fraction 0.05 --name smoke  # quick pipeline check
+```
+
+First run downloads VisDrone2019-DET (~2 GB) into `data/VisDrone/`. Weights and curves go to `runs/<name>/`.
+
 ## Roadmap
 
 - [x] Phase 1: COCO-pretrained YOLO, standard vs SAHI on demo images
-- [ ] Phase 2: fine-tune YOLO on VisDrone (aerial dataset, 10 classes, many tiny objects)
+- [~] Phase 2: fine-tune YOLO on VisDrone (training script done, full run in progress) (aerial dataset, 10 classes, many tiny objects)
 - [ ] Phase 3: evaluate on VisDrone val with COCO metrics (mAP, AP-small, recall) for
       standard vs SAHI vs Ultralytics native `tile`; sweep slice size and overlap
 - [ ] Phase 4: results write-up (tables, plots, failure cases) + Gradio/Streamlit demo
