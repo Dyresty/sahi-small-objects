@@ -33,6 +33,16 @@ python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt
 ```
 
+### Pretrained weights (skip training)
+
+```bash
+mkdir -p runs/visdrone_yolo26s/weights
+curl -L -o runs/visdrone_yolo26s/weights/best.pt https://github.com/Dyresty/sahi-small-objects/releases/download/v1.0/visdrone_yolo26s.pt
+```
+
+YOLO26s fine-tuned on VisDrone ([release v1.0](https://github.com/Dyresty/sahi-small-objects/releases/tag/v1.0)). `app.py` and `evaluate.py` use this path by default.
+The weights derive from Ultralytics YOLO26 (AGPL-3.0). VisDrone is licensed for non-commercial research use.
+
 ## Quick demo: standard vs sliced
 
 ```bash
