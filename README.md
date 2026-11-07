@@ -6,6 +6,13 @@ overlapping tiles and merges the results, recovering those objects without retra
 
 This project measures that trade-off: **how much recall SAHI buys, and what it costs in latency.**
 
+**Result:** on VisDrone val, SAHI raises small-object mAP50-95 by **+52%** (0.128 to 0.194) and small-object
+recall from 0.198 to 0.335 with a YOLO26s fine-tuned on VisDrone, at about 6x the latency. With 800 px slices, it
+raises overall mAP50-95 by +23% at 3x the latency.
+
+![standard vs SAHI](docs/demo_std_vs_sahi.jpg)
+*COCO-pretrained YOLO26n. Left: full image (12 detections). Right: SAHI 256 px slices (27 detections).*
+
 ## Setup
 
 ```bash
@@ -32,12 +39,22 @@ Downloads two SAHI demo images to `data/demo/`, runs both modes, and writes side
 
 First run downloads VisDrone2019-DET (~2 GB) into `data/VisDrone/`. Weights and curves go to `runs/<name>/`.
 
+## Evaluate: full image vs SAHI vs Ultralytics `tile`
+
+```bash
+.venv/Scripts/python scripts/evaluate.py --limit 20     # quick check
+.venv/Scripts/python scripts/evaluate.py                # full val, all modes (~30 min)
+.venv/Scripts/python scripts/plot.py outputs/eval/results_val.csv
+```
+
+All modes are scored with the same pycocotools COCOeval (conf 0.05, maxDets 1000), so numbers compare directly.
+
 ## Roadmap
 
 - [x] Phase 1: COCO-pretrained YOLO, standard vs SAHI on demo images
 - [x] Phase 2: fine-tune YOLO26s on VisDrone (aerial dataset, 10 classes, many tiny objects)
-- [ ] Phase 3: evaluate on VisDrone val with COCO metrics (mAP, AP-small, recall) for
-      standard vs SAHI vs Ultralytics native `tile`; sweep slice size and overlap
+- [x] Phase 3: evaluate on VisDrone val with COCO metrics (mAP, AP-small, recall) for
+      standard vs SAHI vs Ultralytics native `tile`; sweep slice size
 - [ ] Phase 4: results write-up (tables, plots, failure cases) + Gradio/Streamlit demo
 
 ## Results
@@ -61,3 +78,33 @@ Trained 73 epochs (early stop, best at epoch 53, 1.5 h on an RTX 5070 Ti Laptop 
 | motor | 0.496 | 0.514 | 0.472 | 0.204 |
 
 Low recall on tiny classes (people, bicycle, awning-tricycle) is what Phase 3 tests SAHI against.
+
+### Phase 3: inference strategy comparison
+
+Same weights, VisDrone val (548 images), COCO metrics via pycocotools. Latency is end-to-end per image on an RTX 5070 Ti Laptop GPU.
+Slice and tile overlap is 0.2 for SAHI; Ultralytics `tile` uses its built-in overlap.
+
+![accuracy vs speed](docs/results_val.png)
+
+| mode | ms/img | mAP50-95 | mAP50 | AP small | AP medium | AP large | AR small |
+|---|---|---|---|---|---|---|---|
+| full image | 22 | 0.213 | 0.359 | 0.128 | 0.313 | **0.454** | 0.198 |
+| SAHI 320 | 243 | 0.229 | 0.397 | 0.171 | 0.301 | 0.432 | 0.322 |
+| SAHI 480 | 133 | 0.258 | **0.441** | **0.194** | 0.335 | 0.426 | **0.335** |
+| SAHI 640 | 103 | 0.254 | 0.432 | 0.181 | 0.342 | 0.426 | 0.312 |
+| SAHI 800 | 65 | **0.261** | 0.439 | 0.180 | **0.359** | 0.440 | 0.285 |
+| SAHI 960 | 59 | 0.252 | 0.421 | 0.169 | 0.353 | 0.447 | 0.262 |
+| tile 480 | 102 | 0.234 | 0.403 | 0.186 | 0.300 | 0.238 | 0.333 |
+| tile 640 | 61 | 0.234 | 0.398 | 0.173 | 0.315 | 0.295 | 0.311 |
+| tile 800 | 31 | 0.253 | 0.422 | 0.175 | 0.352 | 0.383 | 0.280 |
+| tile 960 | 28 | 0.249 | 0.414 | 0.169 | 0.351 | 0.422 | 0.266 |
+
+Full CSV: [docs/results_val.csv](docs/results_val.csv).
+
+**Findings**
+- **Slicing pays off for small objects.** With SAHI at 480 px, small-object AP rises 52% and small-object recall rises 69%.
+- **Slice size trades small-object accuracy against large-object accuracy.** Small slices upscale tiny objects, which helps them, but they cut large objects apart. That is why `tile` at 480 px drops large-object AP from 0.454 to 0.238.
+- **Why SAHI keeps large objects:** it also merges in a full-image prediction (`perform_standard_pred=True`), so it holds AP large at 0.43–0.45. Ultralytics `tile` has no full-image pass, so it loses them.
+- **Smallest slices are not best:** at 320 px the model sees 2x-upscaled, blurry crops, and accuracy falls on every metric.
+- **Best speed/accuracy trade-off:** Ultralytics `tile` at 800 px reaches +19% mAP50-95 at 1.4x the latency (31 vs 22 ms). Choose SAHI at 800 px for the best overall mAP, or SAHI at 480 px to maximize small-object recall.
+- The full-image result (0.213) is below Ultralytics `val` (0.232) because this comparison uses conf 0.05, not 0.001, and pycocotools in place of Ultralytics' own mAP. All modes here use the same settings.
