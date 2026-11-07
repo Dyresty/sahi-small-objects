@@ -106,5 +106,5 @@ Full CSV: [docs/results_val.csv](docs/results_val.csv).
 - **Slice size trades small-object accuracy against large-object accuracy.** Small slices upscale tiny objects, which helps them, but they cut large objects apart. That is why `tile` at 480 px drops large-object AP from 0.454 to 0.238.
 - **Why SAHI keeps large objects:** it also merges in a full-image prediction (`perform_standard_pred=True`), so it holds AP large at 0.43–0.45. Ultralytics `tile` has no full-image pass, so it loses them.
 - **Smallest slices are not best:** at 320 px the model sees 2x-upscaled, blurry crops, and accuracy falls on every metric.
-- **Best speed/accuracy trade-off:** Ultralytics `tile` at 800 px reaches +19% mAP50-95 at 1.4x the latency (31 vs 22 ms). Choose SAHI at 800 px for the best overall mAP, or SAHI at 480 px to maximize small-object recall.
+- **Best speed/accuracy trade-off:** Ultralytics `tile` at 800 px reaches +19% mAP50-95 at about 2x the latency of plain Ultralytics inference (31 vs 14 ms; the 22 ms full-image row goes through the SAHI wrapper). Choose SAHI at 800 px for the best overall mAP, or SAHI at 480 px to maximize small-object recall.
 - The full-image result (0.213) is below Ultralytics `val` (0.232) because this comparison uses conf 0.05, not 0.001, and pycocotools in place of Ultralytics' own mAP. All modes here use the same settings.
