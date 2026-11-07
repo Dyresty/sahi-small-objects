@@ -31,12 +31,13 @@ def fetch_demo(dst: Path) -> None:
             download_from_url(url, str(path))
 
 
-def visual(result) -> Image.Image:
+def visual(result, hide_labels: bool = False) -> Image.Image:
     """Render a PredictionResult to a PIL image."""
     from sahi.utils.cv import visualize_object_predictions
 
     out = visualize_object_predictions(
-        np.ascontiguousarray(result.image), result.object_prediction_list, hide_conf=True
+        np.ascontiguousarray(result.image), result.object_prediction_list, hide_conf=True,
+        hide_labels=hide_labels, rect_th=2,
     )
     return Image.fromarray(out["image"])
 
@@ -56,6 +57,7 @@ def main() -> None:
     ap.add_argument("--slice", type=int, default=256)
     ap.add_argument("--overlap", type=float, default=0.2)
     ap.add_argument("--out", default="outputs/compare")
+    ap.add_argument("--no-labels", action="store_true", help="boxes only; for dense scenes")
     args = ap.parse_args()
 
     src, out = Path(args.source), Path(args.out)
@@ -92,7 +94,7 @@ def main() -> None:
         )
         t2 = time.perf_counter()
 
-        side_by_side(visual(std), visual(sliced)).save(out / f"{img.stem}_std_vs_sahi.jpg", quality=90)
+        side_by_side(visual(std, args.no_labels), visual(sliced, args.no_labels)).save(out / f"{img.stem}_std_vs_sahi.jpg", quality=90)
         rows.append((img.name, len(std.object_prediction_list), len(sliced.object_prediction_list),
                      (t1 - t0) * 1000, (t2 - t1) * 1000))
 

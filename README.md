@@ -13,6 +13,18 @@ raises overall mAP50-95 by +23% at 3x the latency.
 ![standard vs SAHI](docs/demo_std_vs_sahi.jpg)
 *COCO-pretrained YOLO26n. Left: full image (12 detections). Right: SAHI 256 px slices (27 detections).*
 
+### Dense scene, VisDrone val (fine-tuned YOLO26s, conf 0.25)
+
+![full image vs SAHI on VisDrone](docs/visdrone_std_vs_sahi.jpg)
+*This is the val image where SAHI helped most. Left: full image found 160 of 317 ground-truth objects (IoU ≥ 0.5). Right: SAHI with 480 px slices found 257, mostly the pedestrians and bicycles at the back of the scene.*
+
+## What this project shows
+
+- **Training:** fine-tuned YOLO26s on VisDrone2019-DET (6.5k images, 10 classes), with early stopping.
+- **Evaluation:** one shared COCO evaluation for every inference strategy, set up so that dense scenes are not under-scored (maxDets 1000; VisDrone images have up to 900 objects).
+- **Analysis:** an accuracy/latency sweep across 10 configurations, with each result explained by object size.
+- **Demo:** a Gradio app to compare the strategies interactively.
+
 ## Setup
 
 ```bash
@@ -49,13 +61,23 @@ First run downloads VisDrone2019-DET (~2 GB) into `data/VisDrone/`. Weights and 
 
 All modes are scored with the same pycocotools COCOeval (conf 0.05, maxDets 1000), so numbers compare directly.
 
+## Interactive demo
+
+```bash
+.venv/Scripts/python app.py            # http://localhost:7860, uses runs/visdrone_yolo26s/weights/best.pt
+.venv/Scripts/python app.py --share    # temporary public link
+```
+
+Upload an image (or pick an example), choose **Full image / SAHI / Ultralytics tile**, and adjust the slice size,
+overlap and confidence. The app reports detection count and latency.
+
 ## Roadmap
 
 - [x] Phase 1: COCO-pretrained YOLO, standard vs SAHI on demo images
 - [x] Phase 2: fine-tune YOLO26s on VisDrone (aerial dataset, 10 classes, many tiny objects)
 - [x] Phase 3: evaluate on VisDrone val with COCO metrics (mAP, AP-small, recall) for
       standard vs SAHI vs Ultralytics native `tile`; sweep slice size
-- [ ] Phase 4: results write-up (tables, plots, failure cases) + Gradio/Streamlit demo
+- [x] Phase 4: results write-up (tables, plots, qualitative example) + Gradio demo
 
 ## Results
 
